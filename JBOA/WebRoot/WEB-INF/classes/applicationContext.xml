@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+	http://www.springframework.org/schema/tx
+	http://www.springframework.org/schema/tx/spring-tx-3.1.xsd
+	http://www.springframework.org/schema/aop
+	http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
+	<!-- 配置SessionFactoryBean -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+			<property name="configLocation">
+				<value>classpath:hibernate.cfg.xml</value>
+			</property>
+	</bean>
+
+	<bean id="baseDao" class="org.springframework.orm.hibernate3.HibernateTemplate"
+		p:sessionFactory-ref="sessionFactory">
+	</bean>
+	<!-- 用户登录 -->
+	<bean id="dao" class="cn.dao.impl.SysEmpDaoImpl"
+		parent="baseDao"></bean>
+
+	<bean id="biz" class="cn.biz.impl.SysEmpBizImpl">
+
+		<property name="EmpDao" ref="dao" />
+
+	</bean>
+	
+	<!-- 显示所有的报销单的信息 -->
+	<bean id="ddao" class="cn.dao.impl.BizClaimVoucherDaoImpl"
+		parent="baseDao"></bean>
+
+	<bean id="bbiz" class="cn.biz.impl.BizClaimVoucherBizImpl">
+
+		<property name="claimvoucher" ref="ddao" />
+
+	</bean>
+	
+	<!--显示报销单详情  -->
+	<bean id="viewdao" class="cn.dao.impl.BizClaimViewDaoImpl" parent="baseDao"></bean>
+	
+	<bean id="viewbiz" class="cn.biz.impl.BizClaimViewBizImpl">
+		<property name="claimview" ref="viewdao"></property>
+	</bean>
+	<!-- 定义事物管理器 -->
+	<bean id="txManager"
+		class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+
+	<!-- 标签定义事务增强,并指定事务管理器 -->
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<!-- 定义属性，声明事务规则 -->
+		<tx:attributes>
+			<tx:method name="find*" read-only="true" />
+			<tx:method name="search*" read-only="true" />
+			<tx:method name="query*" read-only="true" />
+			<tx:method name="add*" propagation="REQUIRED" />
+			<tx:method name="del*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="do*" propagation="REQUIRED" />
+			<tx:method name="*" propagation="REQUIRED" read-only="true" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 定义切面 -->
+	<aop:config>
+		<!-- 定义切入点 -->
+		<aop:pointcut id="serviceMethod" expression="execution(* cn.biz.impl.*.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="serviceMethod" />
+	</aop:config>
+
+
+</beans>
